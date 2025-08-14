@@ -1,13 +1,12 @@
-import React, { useEffect, useState } from "react"; 
+import React, { useEffect, useState } from "react";
 import axios from "../api/axios";
 
 // Import role-specific components
 import UsersTable from "../components/Admin/Usertable";
-import UserForm from "../components/Admin/Userform";
 import Analytics from "../components/Admin/Analytics";
 import TaskForm from "../components/Admin/TaskForm";
-import TeamTasks from "../components/Manager/Teamtasks";
 import MyTasks from "../components/User/Mytasks";
+import ManagerDashboard from "../components/Manager/ManagerDashboard"; // <-- import new manager dashboard
 
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
@@ -44,22 +43,42 @@ const Dashboard = () => {
   // Callback to update tasks and refresh stats after creating a new task
   const handleTaskCreated = async (newTask) => {
     try {
-      // Add new task locally
       setDashboardData(prev => ({
         ...prev,
         tasks: [newTask, ...prev.tasks],
       }));
 
-      // Fetch updated stats from backend
       const res = await axios.get("/dashboard", { withCredentials: true });
       if (res.data.success) {
         setDashboardData(prev => ({
           ...prev,
-          stats: res.data.stats, // update Analytics with latest data
+          stats: res.data.stats,
         }));
       }
     } catch (err) {
       console.error("Failed to update stats after task creation:", err);
+    }
+  };
+
+  // Callback to update task dependencies (for managers)
+  const handleDependenciesUpdated = async (taskId, newDependencies) => {
+    try {
+      const res = await axios.put(
+        `/tasks/${taskId}/dependencies`,
+        { dependencies: newDependencies },
+        { withCredentials: true }
+      );
+
+      if (res.data.success) {
+        setDashboardData(prev => ({
+          ...prev,
+          tasks: prev.tasks.map(task =>
+            task._id === taskId ? { ...task, dependencies: newDependencies } : task
+          ),
+        }));
+      }
+    } catch (err) {
+      console.error("Failed to update dependencies:", err);
     }
   };
 
@@ -97,12 +116,14 @@ const Dashboard = () => {
         <>
           <Analytics stats={stats} />
           <TaskForm onTaskCreated={handleTaskCreated} />
-          <UserForm />
           <UsersTable users={users} />
         </>
       )}
 
-      {user.role === "manager" && <TeamTasks tasks={tasks} />}
+      {user.role === "manager" && (
+        <ManagerDashboard tasks={tasks} onDependenciesUpdated={handleDependenciesUpdated} />
+      )}
+
       {user.role === "user" && <MyTasks tasks={tasks} />}
     </div>
   );

@@ -14,10 +14,11 @@ const TaskForm = ({ onTaskCreated }) => {
   const [priority, setPriority] = useState(1);
   const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [tasks, setTasks] = useState([]);
-  const [dependencies, setDependencies] = useState([]);
+  const [tasks, setTasks] = useState([]); // existing tasks
+  const [dependencies, setDependencies] = useState([]); // only for manager
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
+  const [role, setRole] = useState(""); // user's role
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -38,24 +39,38 @@ const TaskForm = ({ onTaskCreated }) => {
       }
     };
 
+    const fetchCurrentUser = async () => {
+      try {
+        const res = await axios.get("/current-user", { withCredentials: true });
+        if (res.data.success) setRole(res.data.user.role);
+      } catch (err) {
+        console.error("Failed to fetch current user role:", err);
+      }
+    };
+
     fetchUsers();
     fetchTasks();
+    fetchCurrentUser();
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(
-        "/tasks",
-        { title, description, assignedTo, priority, startDate, dueDate, dependencies },
-        { withCredentials: true }
-      );
+      // Only send dependencies if the user is a manager
+      const payload = {
+        title,
+        description,
+        assignedTo,
+        priority,
+        startDate,
+        dueDate,
+        ...(role === "manager" ? { dependencies } : {}),
+      };
+
+      const res = await axios.post("/tasks", payload, { withCredentials: true });
 
       if (res.data.success) {
-        // Send both task and updated stats to Dashboard
-        onTaskCreated(res.data.task, res.data.stats);
-
-        // Reset form
+        onTaskCreated(res.data.task);
         setTitle("");
         setDescription("");
         setAssignedTo("");
@@ -109,7 +124,7 @@ const TaskForm = ({ onTaskCreated }) => {
             <option value="">Assign To</option>
             {users.map(u => (
               <option key={u._id} value={u._id}>
-                {u.name} ({u.role.name})
+                {u.email} ({u.name})
               </option>
             ))}
           </select>
@@ -150,34 +165,36 @@ const TaskForm = ({ onTaskCreated }) => {
           />
         </div>
 
-        {/* Dependencies */}
-        <div className="mb-2">
-          <label className="form-label">Dependencies</label>
-          {tasks.length > 0 ? (
-            tasks.map((task) => (
-              <div key={task._id} className="form-check">
-                <input
-                  type="checkbox"
-                  className="form-check-input"
-                  id={`dep-${task._id}`}
-                  value={task._id}
-                  checked={dependencies.includes(task._id)}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    setDependencies(prev =>
-                      prev.includes(id) ? prev.filter(d => d !== id) : [...prev, id]
-                    );
-                  }}
-                />
-                <label className="form-check-label" htmlFor={`dep-${task._id}`}>
-                  {task.title} ({priorityMap[task.priority]})
-                </label>
-              </div>
-            ))
-          ) : (
-            <p className="text-muted">No existing tasks to depend on.</p>
-          )}
-        </div>
+        {/* Dependencies: only for managers */}
+        {role === "manager" && (
+          <div className="mb-2">
+            <label className="form-label">Dependencies</label>
+            {tasks.length > 0 ? (
+              tasks.map((task) => (
+                <div key={task._id} className="form-check">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    id={`dep-${task._id}`}
+                    value={task._id}
+                    checked={dependencies.includes(task._id)}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setDependencies(prev =>
+                        prev.includes(id) ? prev.filter(d => d !== id) : [...prev, id]
+                      );
+                    }}
+                  />
+                  <label className="form-check-label" htmlFor={`dep-${task._id}`}>
+                    {task.title} ({priorityMap[task.priority]})
+                  </label>
+                </div>
+              ))
+            ) : (
+              <p className="text-muted">No existing tasks to depend on.</p>
+            )}
+          </div>
+        )}
 
         <button className="btn btn-primary">Create Task</button>
       </form>

@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import axios from "../../api/axios";
 
 const UsersTable = ({ users: initialUsers }) => {
-  const [users, setUsers] = useState(initialUsers || []);
+  const [users, setUsers] = useState(
+    (initialUsers || []).filter(u => u.role.name !== "admin") // hide admins
+  );
 
   // Promote user to manager
   const promoteUser = async (id) => {
@@ -62,21 +64,20 @@ const UsersTable = ({ users: initialUsers }) => {
               <td>{u.email}</td>
               <td>{u.role.name}</td>
               <td>
-              <button
-                  className="btn btn-sm btn-danger"
+                <button
+                  className="btn btn-sm btn-danger me-2"
                   onClick={() => deleteUser(u._id)}
                 >
                   Delete
                 </button>
                 {u.role.name === "user" && (
                   <button
-                    className="btn btn-sm btn-warning me-2"
+                    className="btn btn-sm btn-warning"
                     onClick={() => promoteUser(u._id)}
                   >
                     Promote to Manager
                   </button>
                 )}
-                
               </td>
             </tr>
           ))}

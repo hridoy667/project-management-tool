@@ -216,3 +216,85 @@ exports.getDashboardData = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch dashboard data", error: error.toString() });
   }
 };
+
+exports.getAssignedTasks = async (req, res) => {
+  try {
+    const managerId = req.user._id; // assuming you have auth middleware that sets req.user
+    const tasks = await Task.find({ assignedTo: managerId })
+      .populate("assignedTo", "name email role")
+      .populate("dependencies", "title priority");
+    
+    res.json({ success: true, tasks });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Failed to fetch tasks" });
+  }
+};
+
+exports.updateDependencies = async (req, res) => {
+  try {
+    const managerId = req.user._id;
+    const { taskId } = req.params;
+    let { dependencies } = req.body;
+
+    const task = await Task.findById(taskId);
+    if (!task)
+      return res.status(404).json({ success: false, message: "Task not found" });
+
+    // Only assigned manager can update dependencies
+    if (!task.assignedTo.equals(managerId)) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized" });
+    }
+
+    // Remove duplicates
+    dependencies = [...new Set(dependencies)];
+
+    // Prevent a task from depending on itself
+    dependencies = dependencies.filter(depId => depId !== taskId);
+
+    task.dependencies = dependencies;
+    await task.save();
+
+    res.json({ success: true, task });
+  } catch (err) {
+    console.error(err);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update dependencies" });
+  }
+};
+
+
+
+exports.assignUserToTask = async (req, res) => {
+  try {
+    const managerId = req.user._id;
+    const { taskId } = req.params;
+    const { userId } = req.body;
+
+    const task = await Task.findById(taskId);
+    if (!task) return res.status(404).json({ success: false, message: "Task not found" });
+
+    // Only assigned manager can assign users to this task
+    if (!task.assignedTo.equals(managerId)) {
+      return res.status(403).json({ success: false, message: "Not authorized" });
+    }
+
+    const user = await user.findById(userId);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    // Here you can store assigned users in a separate array if needed, or create a TaskUser model
+    // For simplicity, let's add to dependencies if not already present
+    if (!task.dependencies.includes(userId)) {
+      task.dependencies.push(userId);
+      await task.save();
+    }
+
+    res.json({ success: true, message: "User assigned successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Failed to assign user" });
+  }
+};

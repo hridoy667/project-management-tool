@@ -91,6 +91,25 @@ exports.login = async (req, res) => {
   }
 }
 
+exports.deleteUser = async (req, res) => {
+  try {
+    const user = await UserModel.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    await user.deleteOne();
+    res.status(200).json({ success: true, message: "User deleted" });
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({
+      success: false,
+      message: "Failed to delete user",
+      error: error.toString(),
+    });
+  }
+};
+
 exports.createUserWithRole = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -147,13 +166,43 @@ exports.promoteUser = async (req, res) => {
 // Get list of all users (admin only)
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await UserModel.find()
-      .populate('role', 'name') // show role name
-      .select('-password'); // hide password
+    let users = await UserModel.find().populate('role', 'name').select('-password');
+
+    // Filter based on current user's role
+    if (req.user.role.name === "admin") {
+      users = users.filter(u => u.role.name === "manager");
+    } else if (req.user.role.name === "manager") {
+      users = users.filter(u => u.role.name === "user");
+    }
 
     res.status(200).json({ success: true, users });
   } catch (error) {
     console.error(error);
     res.status(400).json({ success: false, message: "Failed to fetch users", error: error.toString() });
+  }
+};
+
+// logout
+
+exports.logout = async (req, res) => {
+  try {
+    // Clear the JWT cookie
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+    });
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Logged out successfully" 
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Logout failed", 
+      error: error.toString() 
+    });
   }
 };

@@ -8,10 +8,14 @@ let router = express.Router()
 
 router.post("/register",Usercontroller.register)
 router.post("/login",Usercontroller.login)
+router.post("/logout", Usercontroller.logout);
+
 // User list
 router.get('/users', isAuthenticated, authorizeRoles('admin', 'manager'), Usercontroller.getAllUsers);
-router.get('/dashboard-stats', isAuthenticated, authorizeRoles('admin', 'manager'), taskController.getDashboardStats);
+router.get('/dashboard', isAuthenticated, authorizeRoles('user', 'manager', 'admin'), taskController.getDashboardData);
+
 router.post("/create-user",isAuthenticated,authorizeRoles("admin"),Usercontroller.createUserWithRole); // Only admins can use this
+router.delete("/users/:id",isAuthenticated,authorizeRoles("admin"),Usercontroller.deleteUser);
 router.put("/promote/:id",isAuthenticated,authorizeRoles("admin"),Usercontroller.promoteUser); // Only admins
 router.post('/tasks', isAuthenticated, authorizeRoles('admin', 'manager'), taskController.createTask);
 router.get('/tasks', isAuthenticated, taskController.getTasks);

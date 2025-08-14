@@ -1,18 +1,17 @@
 import React from 'react';
-
-import './App.css'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
 
 function App() {
-  
-
   return (
-    <>
-      <div className="container mt-5">
-      <h1 className="text-primary">Bootstrap is working!</h1>
-      <button className="btn btn-success">Test Button</button>
-    </div>
-    </>
-  )
+    <Router>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+      </Routes>
+    </Router>
+  );
 }
 
-export default App
+export default App;

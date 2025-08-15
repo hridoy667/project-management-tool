@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "../../api/axios";
-import { FaChevronDown, FaChevronUp } from "react-icons/fa";
+import { FaChevronDown, FaChevronUp, FaEdit, FaAngleDown, FaAngleUp, FaPaperPlane } from "react-icons/fa";
 
 const priorityMap = {
   1: "High Priority",
@@ -8,16 +8,21 @@ const priorityMap = {
   3: "Low Priority",
 };
 
-// components/ManagerTaskForm.jsx
 const ManagerTaskForm = ({ task, onUpdate }) => {
   const [dependencies, setDependencies] = useState(task.dependencies || []);
   const [assignedUsers, setAssignedUsers] = useState(task.assignedUsers || []);
-  const [objectivesText, setObjectivesText] = useState(task.objectivesText || ''); // <-- NEW
+  const [objectivesText, setObjectivesText] = useState(task.objectivesText || '');
   const [allTasks, setAllTasks] = useState([]);
   const [users, setUsers] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [editing, setEditing] = useState(task.dependencies.length === 0); 
-  const [collapsed, setCollapsed] = useState(task.dependencies.length > 0);
+  const [collapsed, setCollapsed] = useState(true);
+  const [showDependencies, setShowDependencies] = useState(false);
+  const [showAssignments, setShowAssignments] = useState(false);
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [comments, setComments] = useState(task.comments || []);
+  const [newComment, setNewComment] = useState('');
+  const [commentLoading, setCommentLoading] = useState(false);
 
   useEffect(() => {
     const fetchTasksAndUsers = async () => {
@@ -36,6 +41,16 @@ const ManagerTaskForm = ({ task, onUpdate }) => {
     fetchTasksAndUsers();
   }, []);
 
+  useEffect(() => {
+    // Check if any changes were made
+    const changesExist = 
+      JSON.stringify(dependencies) !== JSON.stringify(task.dependencies) ||
+      JSON.stringify(assignedUsers) !== JSON.stringify(task.assignedUsers) ||
+      objectivesText !== task.objectivesText;
+    
+    setHasChanges(changesExist);
+  }, [dependencies, assignedUsers, objectivesText, task]);
+
   const handleCheckboxChange = (taskId) => {
     setDependencies(prev =>
       prev.includes(taskId) ? prev.filter(d => d !== taskId) : [...prev, taskId]
@@ -53,45 +68,129 @@ const ManagerTaskForm = ({ task, onUpdate }) => {
     try {
       const res = await axios.put(
         `/tasks/${task._id}/update`,
-        { dependencies, assignedUsers, objectivesText }, // <-- INCLUDE
+        { dependencies, assignedUsers, objectivesText },
         { withCredentials: true }
       );
       if (res.data.success) {
         onUpdate(res.data.task);
-        alert("Task updated successfully!");
-        setEditing(false);
         setCollapsed(true);
+        setShowDependencies(false);
+        setShowAssignments(false);
+        setHasChanges(false);
       }
     } catch (err) {
       console.error(err.response?.data || err.message);
-      alert("Failed to update task");
     }
     setSaving(false);
+  };
+
+  const toggleCollapse = () => {
+    setCollapsed(!collapsed);
+    if (!collapsed) {
+      setShowDependencies(false);
+      setShowAssignments(false);
+    }
+  };
+
+  const toggleDescription = () => {
+    setShowFullDescription(!showFullDescription);
+  };
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    setCommentLoading(true);
+    try {
+      const res = await axios.post(
+        `/tasks/${task._id}/comments`,
+        { text: newComment },
+        { withCredentials: true }
+      );
+      
+      if (res.data.success) {
+        setComments([...comments, res.data.comment]);
+        setNewComment('');
+      }
+    } catch (err) {
+      console.error(err.response?.data || err.message);
+    }
+    setCommentLoading(false);
+  };
+
+  const renderDescription = () => {
+    if (!task.description) return null;
+    
+    const maxLines = 3;
+    const lines = task.description.split('\n');
+    const shouldTruncate = lines.length > maxLines && !showFullDescription;
+
+    return (
+      <div className="mb-2">
+        <strong>Description:</strong>
+        <div 
+          className={`description-content ${shouldTruncate ? 'truncated' : ''}`}
+          style={{
+            maxHeight: shouldTruncate ? `${maxLines * 1.5}em` : 'none',
+            overflow: 'hidden',
+            whiteSpace: 'pre-line'
+          }}
+        >
+          {task.description}
+        </div>
+        {lines.length > maxLines && (
+          <button 
+            onClick={toggleDescription} 
+            className="btn btn-link p-0 text-decoration-none"
+          >
+            {showFullDescription ? (
+              <><FaAngleUp className="me-1" /> Show less</>
+            ) : (
+              <><FaAngleDown className="me-1" /> Show more</>
+            )}
+          </button>
+        )}
+      </div>
+    );
   };
 
   return (
     <div className="card mb-4 shadow-sm border-0">
       <div className="card-body" style={{ position: "relative" }}>
-        {collapsed && !editing ? (
+        {/* Collapsed View */}
+        {collapsed ? (
           <>
             <h5 className="card-title">{task.title}</h5>
             <p className="card-text"><strong>Priority:</strong> {priorityMap[task.priority]}</p>
             <p className="card-text"><strong>Due:</strong> {new Date(task.dueDate).toLocaleDateString()}</p>
-            {task.objectivesText && (
-              <p className="card-text"><strong>Objectives:</strong> {task.objectivesText}</p>
+            {objectivesText && (
+              <p className="card-text"><strong>Objectives:</strong> {objectivesText}</p>
+            )}
+            {comments.length > 0 && (
+              <p className="card-text"><strong>Comments:</strong> {comments.length}</p>
             )}
             <button
               className="btn btn-link position-absolute"
               style={{ bottom: 10, right: 10 }}
-              onClick={() => { setCollapsed(false); setEditing(true); }}
+              onClick={toggleCollapse}
             >
               <FaChevronDown size={20} />
             </button>
           </>
         ) : (
           <>
-            <h5>{task.title}</h5>
-            <p><strong>Description:</strong> {task.description}</p>
+            {/* Expanded view with full editing form */}
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h5 className="mb-0">{task.title}</h5>
+              <button
+                className="btn btn-link"
+                onClick={toggleCollapse}
+              >
+                <FaChevronUp size={20} />
+              </button>
+            </div>
+            
+            {renderDescription()}
             <p><strong>Priority:</strong> {priorityMap[task.priority]}</p>
             <p><strong>Start:</strong> {new Date(task.startDate).toLocaleDateString()}</p>
             <p><strong>Due:</strong> {new Date(task.dueDate).toLocaleDateString()}</p>
@@ -108,77 +207,140 @@ const ManagerTaskForm = ({ task, onUpdate }) => {
               ></textarea>
             </div>
 
-            {/* Dependencies */}
+            {/* Dependencies Section */}
             <div className="mb-3">
-              <label className="form-label"><strong>Dependencies</strong></label>
-              <div style={{ maxHeight: "150px", overflowY: "auto", border: "1px solid #ddd", padding: "8px", borderRadius: "5px" }}>
-                {allTasks.length > 0 ? (
-                  allTasks.map(t => (
-                    <div key={t._id} className="form-check">
+              <div className="d-flex justify-content-between align-items-center">
+                <label className="form-label"><strong>Dependencies</strong></label>
+                <button 
+                  className="btn btn-sm btn-link"
+                  onClick={() => setShowDependencies(!showDependencies)}
+                >
+                  {showDependencies ? 'Hide' : dependencies.length > 0 ? (
+                    <>
+                      <FaEdit className="me-1" />
+                      Edit ({dependencies.length})
+                    </>
+                  ) : 'Add Dependencies'}
+                </button>
+              </div>
+              
+              {showDependencies && (
+                <div style={{ maxHeight: "150px", overflowY: "auto", border: "1px solid #ddd", padding: "8px", borderRadius: "5px" }}>
+                  {allTasks.length > 0 ? (
+                    allTasks.map(t => (
+                      <div key={t._id} className="form-check">
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          id={`dep-${t._id}`}
+                          value={t._id}
+                          checked={dependencies.includes(t._id)}
+                          onChange={() => handleCheckboxChange(t._id)}
+                          disabled={t._id === task._id}
+                        />
+                        <label className="form-check-label" htmlFor={`dep-${t._id}`}>
+                          {t.title} ({priorityMap[t.priority]})
+                        </label>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-muted">No tasks available for dependencies.</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Assign Users Section */}
+            <div className="mb-3">
+              <div className="d-flex justify-content-between align-items-center">
+                <h6 className="mb-0">Assign Users</h6>
+                <button 
+                  className="btn btn-sm btn-link"
+                  onClick={() => setShowAssignments(!showAssignments)}
+                >
+                  {showAssignments ? 'Hide' : assignedUsers.length > 0 ? (
+                    <>
+                      <FaEdit className="me-1" />
+                      Edit ({assignedUsers.length})
+                    </>
+                  ) : 'Assign Users'}
+                </button>
+              </div>
+              
+              {showAssignments && (
+                <div style={{ maxHeight: "150px", overflowY: "auto", border: "1px solid #ddd", padding: "8px", borderRadius: "5px" }}>
+                  {users.map(u => (
+                    <div key={u._id} className="form-check">
                       <input
                         type="checkbox"
                         className="form-check-input"
-                        id={`dep-${t._id}`}
-                        value={t._id}
-                        checked={dependencies.includes(t._id)}
-                        onChange={() => handleCheckboxChange(t._id)}
-                        disabled={t._id === task._id}
+                        id={`user-${u._id}`}
+                        value={u._id}
+                        checked={assignedUsers.includes(u._id)}
+                        onChange={() => toggleUser(u._id)}
                       />
-                      <label className="form-check-label" htmlFor={`dep-${t._id}`}>
-                        {t.title} ({priorityMap[t.priority]})
+                      <label className="form-check-label" htmlFor={`user-${u._id}`}>
+                        {u.name} ({u.email})
                       </label>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Comments Section */}
+            <div className="mb-3">
+              <h6>Discussion</h6>
+              <div className="mb-3" style={{ maxHeight: "200px", overflowY: "auto" }}>
+                {comments.length > 0 ? (
+                  comments.map((comment, index) => (
+                    <div key={index} className="mb-2 p-2 bg-light rounded">
+                      <div className="d-flex justify-content-between">
+                        <strong>{comment.user?.name || 'Unknown'}</strong>
+                        <small className="text-muted">
+                          {new Date(comment.createdAt).toLocaleString()}
+                        </small>
+                      </div>
+                      <p className="mb-0">{comment.text}</p>
                     </div>
                   ))
                 ) : (
-                  <p className="text-muted">No tasks available for dependencies.</p>
+                  <p className="text-muted">No comments yet</p>
                 )}
               </div>
+              
+              <form onSubmit={handleCommentSubmit} className="d-flex">
+                <input
+                  type="text"
+                  className="form-control me-2"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Add a comment..."
+                />
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  disabled={commentLoading || !newComment.trim()}
+                >
+                  <FaPaperPlane />
+                </button>
+              </form>
             </div>
 
-            {/* Assign Users */}
-            <div className="mb-3">
-              <h6>Assign Users</h6>
-              <div style={{ maxHeight: "150px", overflowY: "auto", border: "1px solid #ddd", padding: "8px", borderRadius: "5px" }}>
-                {users.map(u => (
-                  <div key={u._id} className="form-check">
-                    <input
-                      type="checkbox"
-                      className="form-check-input"
-                      id={`user-${u._id}`}
-                      value={u._id}
-                      checked={assignedUsers.includes(u._id)}
-                      onChange={() => toggleUser(u._id)}
-                    />
-                    <label className="form-check-label" htmlFor={`user-${u._id}`}>
-                      {u.name} ({u.email})
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="d-flex justify-content-between align-items-center">
+            {hasChanges && (
               <button
-                className="btn btn-primary"
+                className="btn btn-primary w-100"
                 onClick={handleSave}
                 disabled={saving}
               >
                 {saving ? "Saving..." : "Save Changes"}
               </button>
-
-              <button
-                className="btn btn-link"
-                onClick={() => setCollapsed(true)}
-              >
-                <FaChevronUp size={20} />
-              </button>
-            </div>
+            )}
           </>
         )}
       </div>
     </div>
   );
 };
-
 
 export default ManagerTaskForm;

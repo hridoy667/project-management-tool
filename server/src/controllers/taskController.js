@@ -235,17 +235,21 @@ exports.getDashboardData = async (req, res) => {
 
 exports.getAssignedTasks = async (req, res) => {
   try {
-    const managerId = req.user._id; // assuming you have auth middleware that sets req.user
+    const managerId = req.user._id;
+
     const tasks = await Task.find({ assignedTo: managerId })
       .populate("assignedTo", "name email role")
-      .populate("dependencies", "title priority");
-    
+      .populate("dependencies", "title priority")
+      .populate("assignedUsers", "name email") // optional if you want user names
+      .populate("comments.user", "name"); // <-- populate comments
+
     res.json({ success: true, tasks });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Failed to fetch tasks" });
   }
 };
+
 
 exports.updateDependencies = async (req, res) => {
   try {

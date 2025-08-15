@@ -3,7 +3,7 @@ const Usercontroller = require('../controllers/Usercontroller.js')
 const taskController = require('../controllers/taskController');
 const { isAuthenticated } = require('../middleware/auth'); // JWT middleware
 const { authorizeRoles } = require('../middleware/roles'); // role-based middleware
-
+const {addComment} = require('../controllers/UserTaskController/userTaskController');
 let router = express.Router()
 
 // Auth
@@ -31,5 +31,5 @@ router.put('/tasks/:taskId/dependencies', isAuthenticated, authorizeRoles('manag
 router.post('/tasks/:taskId/assign', isAuthenticated, authorizeRoles('manager'), taskController.assignUserToTask);
 // Manager: update dependencies and assigned users in one call
 router.put('/tasks/:taskId/update',isAuthenticated,authorizeRoles('manager'),taskController.updateDependenciesAndUsers);
-  
+router.post('/tasks/:id/comments', isAuthenticated, authorizeRoles( 'manager'), addComment); 
 module.exports = router;

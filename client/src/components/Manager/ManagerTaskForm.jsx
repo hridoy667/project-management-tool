@@ -9,6 +9,7 @@ const priorityMap = {
 
 const ManagerTaskForm = ({ task, onUpdate }) => {
   const [dependencies, setDependencies] = useState(task.dependencies || []);
+  const [assignedUsers, setAssignedUsers] = useState(task.assignedUsers || []);
   const [allTasks, setAllTasks] = useState([]);
   const [users, setUsers] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -31,43 +32,39 @@ const ManagerTaskForm = ({ task, onUpdate }) => {
     fetchTasksAndUsers();
   }, []);
 
+  // Handle dependency checkboxes
   const handleCheckboxChange = (taskId) => {
     setDependencies(prev =>
       prev.includes(taskId) ? prev.filter(d => d !== taskId) : [...prev, taskId]
     );
   };
 
-  const handleSaveDependencies = async () => {
+  // Handle assigned users checkboxes
+  const toggleUser = (userId) => {
+    setAssignedUsers(prev =>
+      prev.includes(userId) ? prev.filter(u => u !== userId) : [...prev, userId]
+    );
+  };
+
+  // Save both dependencies and assigned users in a single API call
+  const handleSave = async () => {
     setSaving(true);
     try {
       const res = await axios.put(
-        `/tasks/${task._id}/dependencies`,
-        { dependencies },
+        `/tasks/${task._id}/update`,
+        { dependencies, assignedUsers },
         { withCredentials: true }
       );
       if (res.data.success) {
         onUpdate(res.data.task);
-        alert("Dependencies saved successfully!");
-        setEditing(false); // hide after save
+        alert("Task updated successfully!");
+        setEditing(false);
       }
     } catch (err) {
       console.error(err.response?.data || err.message);
-      alert("Failed to save dependencies");
+      alert("Failed to update task");
     }
     setSaving(false);
-  };
-
-  const handleAssignUser = async (userId) => {
-    try {
-      const res = await axios.put(
-        `/tasks/${task._id}/assign-user`,
-        { userId },
-        { withCredentials: true }
-      );
-      if (res.data.success) alert("User assigned successfully!");
-    } catch (err) {
-      console.error(err.response?.data || err.message);
-    }
   };
 
   return (
@@ -81,74 +78,60 @@ const ManagerTaskForm = ({ task, onUpdate }) => {
       {/* Dependencies */}
       <div className="mb-3">
         <label className="form-label"><strong>Dependencies</strong></label>
-        {editing ? (
-          <>
-            <div style={{ maxHeight: "150px", overflowY: "auto", border: "1px solid #ddd", padding: "8px", borderRadius: "5px" }}>
-              {allTasks.length > 0 ? (
-                allTasks.map(t => (
-                  <div key={t._id} className="form-check">
-                    <input
-                      type="checkbox"
-                      className="form-check-input"
-                      id={`dep-${t._id}`}
-                      value={t._id}
-                      checked={dependencies.includes(t._id)}
-                      onChange={() => handleCheckboxChange(t._id)}
-                      disabled={t._id === task._id} // cannot depend on itself
-                    />
-                    <label className="form-check-label" htmlFor={`dep-${t._id}`}>
-                      {t.title} ({priorityMap[t.priority]})
-                    </label>
-                  </div>
-                ))
-              ) : (
-                <p className="text-muted">No tasks available for dependencies.</p>
-              )}
-            </div>
-            <button
-              className="btn btn-primary mt-2"
-              onClick={handleSaveDependencies}
-              disabled={saving}
-            >
-              {saving ? "Saving..." : "Save Dependencies"}
-            </button>
-          </>
-        ) : (
-          <button className="btn btn-secondary mt-2" onClick={() => setEditing(true)}>
-            Edit Dependencies
-          </button>
-        )}
+        <div style={{ maxHeight: "150px", overflowY: "auto", border: "1px solid #ddd", padding: "8px", borderRadius: "5px" }}>
+          {allTasks.length > 0 ? (
+            allTasks.map(t => (
+              <div key={t._id} className="form-check">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id={`dep-${t._id}`}
+                  value={t._id}
+                  checked={dependencies.includes(t._id)}
+                  onChange={() => handleCheckboxChange(t._id)}
+                  disabled={t._id === task._id} // cannot depend on itself
+                />
+                <label className="form-check-label" htmlFor={`dep-${t._id}`}>
+                  {t.title} ({priorityMap[t.priority]})
+                </label>
+              </div>
+            ))
+          ) : (
+            <p className="text-muted">No tasks available for dependencies.</p>
+          )}
+        </div>
       </div>
 
       {/* Assign Users */}
       <div className="mb-3">
-        <h6>Assign Users to this Task</h6>
-        <table className="table table-bordered">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Assign</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(u => (
-              <tr key={u._id}>
-                <td>{u.name}</td>
-                <td>{u.email}</td>
-                <td>
-                  <button
-                    className="btn btn-sm btn-primary"
-                    onClick={() => handleAssignUser(u._id)}
-                  >
-                    Assign
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <h6>Assign Users</h6>
+        <div style={{ maxHeight: "150px", overflowY: "auto", border: "1px solid #ddd", padding: "8px", borderRadius: "5px" }}>
+          {users.map(u => (
+            <div key={u._id} className="form-check">
+              <input
+                type="checkbox"
+                className="form-check-input"
+                id={`user-${u._id}`}
+                value={u._id}
+                checked={assignedUsers.includes(u._id)}
+                onChange={() => toggleUser(u._id)}
+              />
+              <label className="form-check-label" htmlFor={`user-${u._id}`}>
+                {u.name} ({u.email})
+              </label>
+            </div>
+          ))}
+        </div>
       </div>
+
+      {/* Save Button */}
+      <button
+        className="btn btn-primary mt-2"
+        onClick={handleSave}
+        disabled={saving}
+      >
+        {saving ? "Saving..." : "Save Changes"}
+      </button>
     </div>
   );
 };

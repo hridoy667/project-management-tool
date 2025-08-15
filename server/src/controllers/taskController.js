@@ -298,3 +298,33 @@ exports.assignUserToTask = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to assign user" });
   }
 };
+
+exports.updateDependenciesAndUsers = async (req, res) => {
+  try {
+    const managerId = req.user._id;
+    const { taskId } = req.params;
+    let { dependencies = [], assignedUsers = [] } = req.body;
+
+    const task = await Task.findById(taskId);
+    if (!task) return res.status(404).json({ success: false, message: "Task not found" });
+
+    // Only the assigned manager can update
+    if (!task.assignedTo.equals(managerId)) {
+      return res.status(403).json({ success: false, message: "Not authorized" });
+    }
+
+    // Remove duplicates & prevent task depending on itself
+    dependencies = [...new Set(dependencies)].filter(d => d !== taskId);
+    assignedUsers = [...new Set(assignedUsers)];
+
+    task.dependencies = dependencies;
+    task.assignedUsers = assignedUsers;
+
+    await task.save();
+
+    res.json({ success: true, message: "Task updated successfully", task });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Failed to update task" });
+  }
+};

@@ -24,17 +24,17 @@ router.get('/tasks', isAuthenticated, taskController.getTasks);
 router.put('/tasks/:id', isAuthenticated, authorizeRoles('admin', 'manager'), taskController.updateTask);
 router.delete('/tasks/:id', isAuthenticated, authorizeRoles('admin'), taskController.deleteTask);
 
-// ------------------------
+
 // Manager-specific task routes
-// ------------------------
-
-// Get tasks assigned to the logged-in manager
 router.get('/tasks/assigned', isAuthenticated, authorizeRoles('manager'), taskController.getAssignedTasks);
-
-// Update dependencies for a task (manager can only update their own tasks)
 router.put('/tasks/:taskId/dependencies', isAuthenticated, authorizeRoles('manager'), taskController.updateDependencies);
-
-// Assign a user to a task (manager can only assign for tasks assigned to them)
 router.post('/tasks/:taskId/assign', isAuthenticated, authorizeRoles('manager'), taskController.assignUserToTask);
-
+// Manager: update dependencies and assigned users in one call
+router.put(
+    '/tasks/:taskId/update',
+    isAuthenticated,
+    authorizeRoles('manager'),
+    taskController.updateDependenciesAndUsers
+  );
+  
 module.exports = router;

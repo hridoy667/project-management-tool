@@ -73,24 +73,39 @@ exports.getTasks = async (req, res) => {
 
     let query = {};
 
-    // Normal users see only their tasks
-    if (req.user.role.name === 'user') {
-      query.assignedTo = req.user._id;
+    const userId = req.user._id;
+    const userRole = req.user.role.name;
+
+    if (userRole === 'user') {
+      // Include tasks assigned directly to them or in assignedUsers array
+      query = {
+        $or: [
+          { assignedTo: userId },
+          { assignedUsers: userId }
+        ]
+      };
     }
 
     // Search by title or description
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } }
+        ]
+      });
     }
 
     // Filter by priority
-    if (priority) query.priority = Number(priority);
+    if (priority) {
+      query.$and = query.$and || [];
+      query.$and.push({ priority: Number(priority) });
+    }
 
     const tasks = await Task.find(query)
       .populate('assignedTo', 'name email')
+      .populate('assignedUsers', 'name email')
       .populate('dependencies', 'title');
 
     res.status(200).json({ success: true, tasks });
@@ -99,6 +114,7 @@ exports.getTasks = async (req, res) => {
     res.status(400).json({ success: false, message: 'Failed to fetch tasks', error: error.toString() });
   }
 };
+
 
 // Update a task
 exports.updateTask = async (req, res) => {
@@ -299,16 +315,16 @@ exports.assignUserToTask = async (req, res) => {
   }
 };
 
+// controllers/taskController.js
 exports.updateDependenciesAndUsers = async (req, res) => {
   try {
     const managerId = req.user._id;
     const { taskId } = req.params;
-    let { dependencies = [], assignedUsers = [] } = req.body;
+    let { dependencies = [], assignedUsers = [], objectivesText = '' } = req.body;
 
     const task = await Task.findById(taskId);
     if (!task) return res.status(404).json({ success: false, message: "Task not found" });
 
-    // Only the assigned manager can update
     if (!task.assignedTo.equals(managerId)) {
       return res.status(403).json({ success: false, message: "Not authorized" });
     }
@@ -319,6 +335,7 @@ exports.updateDependenciesAndUsers = async (req, res) => {
 
     task.dependencies = dependencies;
     task.assignedUsers = assignedUsers;
+    task.objectivesText = objectivesText; // <-- NEW
 
     await task.save();
 
@@ -328,3 +345,4 @@ exports.updateDependenciesAndUsers = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to update task" });
   }
 };
+

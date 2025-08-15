@@ -8,14 +8,16 @@ const priorityMap = {
   3: "Low Priority",
 };
 
+// components/ManagerTaskForm.jsx
 const ManagerTaskForm = ({ task, onUpdate }) => {
   const [dependencies, setDependencies] = useState(task.dependencies || []);
   const [assignedUsers, setAssignedUsers] = useState(task.assignedUsers || []);
+  const [objectivesText, setObjectivesText] = useState(task.objectivesText || ''); // <-- NEW
   const [allTasks, setAllTasks] = useState([]);
   const [users, setUsers] = useState([]);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(task.dependencies.length === 0); 
-  const [collapsed, setCollapsed] = useState(task.dependencies.length > 0); // show collapsed if already saved
+  const [collapsed, setCollapsed] = useState(task.dependencies.length > 0);
 
   useEffect(() => {
     const fetchTasksAndUsers = async () => {
@@ -51,14 +53,14 @@ const ManagerTaskForm = ({ task, onUpdate }) => {
     try {
       const res = await axios.put(
         `/tasks/${task._id}/update`,
-        { dependencies, assignedUsers },
+        { dependencies, assignedUsers, objectivesText }, // <-- INCLUDE
         { withCredentials: true }
       );
       if (res.data.success) {
         onUpdate(res.data.task);
         alert("Task updated successfully!");
         setEditing(false);
-        setCollapsed(true); // collapse the card after saving
+        setCollapsed(true);
       }
     } catch (err) {
       console.error(err.response?.data || err.message);
@@ -70,12 +72,14 @@ const ManagerTaskForm = ({ task, onUpdate }) => {
   return (
     <div className="card mb-4 shadow-sm border-0">
       <div className="card-body" style={{ position: "relative" }}>
-        {/* Collapsed View */}
         {collapsed && !editing ? (
           <>
             <h5 className="card-title">{task.title}</h5>
             <p className="card-text"><strong>Priority:</strong> {priorityMap[task.priority]}</p>
             <p className="card-text"><strong>Due:</strong> {new Date(task.dueDate).toLocaleDateString()}</p>
+            {task.objectivesText && (
+              <p className="card-text"><strong>Objectives:</strong> {task.objectivesText}</p>
+            )}
             <button
               className="btn btn-link position-absolute"
               style={{ bottom: 10, right: 10 }}
@@ -86,12 +90,23 @@ const ManagerTaskForm = ({ task, onUpdate }) => {
           </>
         ) : (
           <>
-            {/* Expanded view with full editing form */}
             <h5>{task.title}</h5>
             <p><strong>Description:</strong> {task.description}</p>
             <p><strong>Priority:</strong> {priorityMap[task.priority]}</p>
             <p><strong>Start:</strong> {new Date(task.startDate).toLocaleDateString()}</p>
             <p><strong>Due:</strong> {new Date(task.dueDate).toLocaleDateString()}</p>
+
+            {/* Objectives text field */}
+            <div className="mb-3">
+              <label className="form-label"><strong>Project Objectives</strong></label>
+              <textarea
+                className="form-control"
+                rows="3"
+                value={objectivesText}
+                onChange={(e) => setObjectivesText(e.target.value)}
+                placeholder="e.g. Ali do folder setup, Mahin do project initialization"
+              ></textarea>
+            </div>
 
             {/* Dependencies */}
             <div className="mb-3">
@@ -164,5 +179,6 @@ const ManagerTaskForm = ({ task, onUpdate }) => {
     </div>
   );
 };
+
 
 export default ManagerTaskForm;

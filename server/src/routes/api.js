@@ -30,11 +30,6 @@ router.get('/tasks/assigned', isAuthenticated, authorizeRoles('manager'), taskCo
 router.put('/tasks/:taskId/dependencies', isAuthenticated, authorizeRoles('manager'), taskController.updateDependencies);
 router.post('/tasks/:taskId/assign', isAuthenticated, authorizeRoles('manager'), taskController.assignUserToTask);
 // Manager: update dependencies and assigned users in one call
-router.put(
-    '/tasks/:taskId/update',
-    isAuthenticated,
-    authorizeRoles('manager'),
-    taskController.updateDependenciesAndUsers
-  );
+router.put('/tasks/:taskId/update',isAuthenticated,authorizeRoles('manager'),taskController.updateDependenciesAndUsers);
   
 module.exports = router;

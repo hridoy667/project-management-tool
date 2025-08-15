@@ -11,6 +11,7 @@ const cookieParser = require('cookie-parser');
 const hpp = require('hpp')
 const ratelimit=require('express-rate-limit');
 const router = require('./src/routes/api');
+const userTaskRoutes = require('./src/routes/userTaskRoutes');
 const seedRoles = require('./src/utility/seedRoles');
 
 app.use(cors({
@@ -53,5 +54,6 @@ app.use(limiter)
 // version api tag
 
 app.use("/api/v1",router)
+app.use("/api/v1", userTaskRoutes);
 
 module.exports = app;

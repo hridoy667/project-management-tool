@@ -43,15 +43,10 @@ Backend deployed live at https://taskly-wiy0.onrender.com/api/v1
 
 API Endpoints
 
-POST /api/v1/auth/signup – Register a new user
-POST /api/v1/auth/login – Login and generate JWT
-GET /api/v1/tasks – Fetch all tasks (Admin/Manager)
-GET /api/v1/tasks/:id – Fetch single task details
-GET /api/v1/my-tasks – Fetch tasks assigned to logged-in user
-PUT /api/v1/my-tasks/:id/status – Update status of a task
-POST /api/v1/my-tasks/:id/comments – Add a comment to a task
+Here is the Postman Collection Link
+You must have to login to access :
+https://aliimam-9833535.postman.co/workspace/Ali-Imam's-Workspace~51acdf75-4856-49de-8701-0712fac5e316/collection/46572369-fec24004-fa5b-44c5-8b5b-1ae2396cd529?action=share&creator=46572369
 
-You can use Postman or integrate Swagger for interactive API documentation.
 
 Deployment
 Backend deployed on Render.

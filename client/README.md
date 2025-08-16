@@ -1,12 +1,44 @@
-# React + Vite
+Taskly - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the React frontend for Taskly, a web-based task and project management tool.
 
-Currently, two official plugins are available:
+Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+React frontend with functional components and hooks.
+Axios used for API integration with credentials and JWT handling.
+Responsive UI built with Bootstrap.
+Real-time search for tasks by title.
+Dynamic fetching of objectives, dependencies, and task data.
+Users can update task status and post comments.
 
-## Expanding the ESLint configuration
+Setup Instructions
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Install dependencies:
+npm install
+
+Update Axios baseURL to point to your deployed backend URL (e.g., Render):
+const instance = axios.create({
+  baseURL: 'https://your-render-backend-url/api/v1',
+  withCredentials: true,
+});
+
+Start the frontend:
+npm start
+
+
+Frontend runs at http://localhost:3001
+
+Deployment
+Deployed on Netlify
+runs at https://taskly24.netlify.app/
+
+Ensure Axios baseURL points to the Render backend URL.
+Environment variables can be configured in Netlify if needed.
+
+Usage
+
+Register as a User. Admin can promote a user to Manager.
+Admin can create tasks, assign users, and define objectives & dependencies.
+Users can view assigned tasks, update status, and post comments.
+Managers can create objectives and stay connected through commenting.
+Circular dependencies are prevented.

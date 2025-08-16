@@ -12,14 +12,16 @@ exports.getAssignedTasks = async (req, res) => {
     const tasks = await Task.find({ assignedUsers: req.user._id })
       .populate('assignedUsers', 'name email')
       .populate('dependencies', 'title')
-      .populate({ path: 'comments.user', select: 'name role' }); // <-- populate comment user
+      .populate({ path: 'comments.user', select: 'name role' }); // populate comment user
 
+    // Now each task will automatically have objectivesText since it is part of the schema
     res.status(200).json({ success: true, tasks });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 };
+
 
 
 // Update status of a task (only user can update status)

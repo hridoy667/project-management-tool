@@ -139,8 +139,8 @@ const MyTasks = () => {
                           task.priority === 1
                             ? "#dc3545"
                             : task.priority === 2
-                            ? "#ffc107"
-                            : "#6c757d",
+                              ? "#ffc107"
+                              : "#6c757d",
                         color: task.priority === 2 ? "#000" : "#fff",
                       }}
                     >
@@ -156,6 +156,13 @@ const MyTasks = () => {
                       : "None"}
                   </p>
 
+                  {/* Objectives */}
+                  {task.objectivesText && (
+                    <p className="mb-2">
+                      <strong>Objectives:</strong> {task.objectivesText}
+                    </p>
+                  )}
+
                   {/* Assigned Users */}
                   <p className="mb-3">
                     <strong>Assigned Users:</strong>{" "}
@@ -163,6 +170,7 @@ const MyTasks = () => {
                       ? task.assignedUsers.map((u) => u.name).join(", ")
                       : "None"}
                   </p>
+
 
                   {/* Status */}
                   <div className="mb-3 mt-auto">
@@ -226,7 +234,7 @@ const MyTasks = () => {
                       <input
                         type="text"
                         className="form-control"
-                        
+
                         placeholder="Add a comment..."
                         value={commentInputs[task._id] || ""}
                         onChange={(e) =>

@@ -54,9 +54,6 @@ exports.createTask = async (req, res) => {
       await task.save();
     }
 
-    // TODO: Emit via Socket.IO later
-    // req.io.emit('taskCreated', task);
-
     res.status(201).json({ success: true, message: 'Task created', task });
 
   } catch (error) {

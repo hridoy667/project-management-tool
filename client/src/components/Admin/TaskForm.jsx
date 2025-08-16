@@ -39,18 +39,9 @@ const TaskForm = ({ onTaskCreated }) => {
       }
     };
 
-    const fetchCurrentUser = async () => {
-      try {
-        const res = await axios.get("/current-user", { withCredentials: true });
-        if (res.data.success) setRole(res.data.user.role);
-      } catch (err) {
-        console.error("Failed to fetch current user role:", err);
-      }
-    };
-
     fetchUsers();
     fetchTasks();
-    fetchCurrentUser();
+  
   }, []);
 
   const handleSubmit = async (e) => {

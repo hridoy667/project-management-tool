@@ -115,6 +115,38 @@ exports.getTasks = async (req, res) => {
   }
 };
 
+// controllers/taskControllers.js
+exports.getTaskById = async (req, res) => {
+  try {
+    const taskId = req.params.id;
+
+    const task = await Task.findById(taskId)
+      .populate("assignedTo", "name email") // manager assigned by admin
+      .populate("dependencies", "title");
+
+    if (!task) {
+      return res.status(404).json({ success: false, message: "Task not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      task: {
+        _id: task._id,
+        title: task.title,
+        description: task.description,
+        assignedTo: task.assignedTo,
+        status: task.status,
+        priority: task.priority,
+        dependencies: task.dependencies,
+        startDate: task.startDate,
+        dueDate: task.dueDate,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error", error: err.message });
+  }
+};
 
 // Update a task
 exports.updateTask = async (req, res) => {
@@ -123,24 +155,16 @@ exports.updateTask = async (req, res) => {
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
 
     const userRole = req.user.role.name;
-
-    // Users cannot update
     if (userRole === 'user') {
       return res.status(403).json({ success: false, message: 'Not authorized to update task' });
     }
 
-    // Manager can update only tasks assigned to their users
     if (userRole === 'manager') {
       if (!task.assignedTo || task.assignedTo.toString() !== req.user._id.toString()) {
         return res.status(403).json({ success: false, message: 'Managers can update only assigned tasks' });
       }
     }
-
     const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
-
-    // TODO: Emit via Socket.IO later
-    // req.io.emit('taskUpdated', updatedTask);
-
     res.status(200).json({ success: true, message: 'Task updated', task: updatedTask });
 
   } catch (error) {
@@ -161,10 +185,6 @@ exports.deleteTask = async (req, res) => {
     }
 
     await Task.findByIdAndDelete(req.params.id);
-
-    // TODO: Emit via Socket.IO later
-    // req.io.emit('taskDeleted', task);
-
     res.status(200).json({ success: true, message: 'Task deleted' });
 
   } catch (error) {

@@ -37,53 +37,98 @@ const ManagerDashboard = () => {
 
   if (loading)
     return (
-      <div className="d-flex justify-content-center align-items-center vh-100 w-100">
-        <h3 className="text-primary">Loading tasks...</h3>
+      <div className="d-flex justify-content-center align-items-center vh-100 w-100" style={{ background: 'linear-gradient(135deg, #1e3c72, #2a5298)' }}>
+        <div className="text-center">
+          <div className="spinner-border text-light mb-3" role="status" />
+          <h3 className="text-white">Loading tasks...</h3>
+        </div>
       </div>
     );
 
   if (error)
     return (
-      <div className="d-flex justify-content-center align-items-center vh-100 w-100">
-        <h3 className="text-danger">{error}</h3>
+      <div className="d-flex justify-content-center align-items-center vh-100 w-100" style={{ background: 'linear-gradient(135deg, #1e3c72, #2a5298)' }}>
+        <div className="alert alert-danger shadow-lg">{error}</div>
       </div>
     );
 
   return (
-    <div className="container-fluid vh-100 w-100 bg-light p-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="text-primary">Manager Dashboard</h1>
-        
+    <div style={{ minHeight: '100vh', background: '#f5f7fa' }}>
+      {/* Header Section */}
+      <div className="py-4 px-4" style={{ background: 'linear-gradient(135deg, #1e3c72, #2a5298)' }}>
+        <h1 className="text-white fw-bold">Manager Dashboard</h1>
+        <p className="text-white-50">View, manage, and update your assigned tasks efficiently</p>
       </div>
 
-      {managerTasks.length === 0 ? (
-        <p>No tasks assigned to you yet.</p>
-      ) : (
+      <div className="container-fluid py-4">
         <div className="row">
           {/* Tasks Column */}
-          <div className="col-md-8">
-            {managerTasks.map(task => (
-              <ManagerTaskForm
-                key={task._id}
-                task={task}
-                onUpdate={handleDependencyUpdate} 
-              />
-            ))}
+          <div className="col-lg-8 mb-4">
+            {managerTasks.length === 0 ? (
+              <div className="alert alert-info shadow-sm">
+                No tasks assigned to you yet.
+              </div>
+            ) : (
+              managerTasks.map(task => (
+                <div key={task._id} className="mb-4">
+                  <div className="card shadow-lg border-0" style={{ backgroundColor: '#c9d5e9' }}>
+                    <div className="card-body">
+                      <ManagerTaskForm
+                        task={task}
+                        onUpdate={handleDependencyUpdate}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
-          {/* Right Column for instructions */}
-          <div className="col-md-4">
-            <div className="card p-3">
-              <h5>Instructions</h5>
-              <ul>
-                <li>You can update task dependencies here.</li>
-                <li>You can assign users to tasks assigned to you.</li>
-                <li>Other fields (title, description, priority, dates) are read-only.</li>
-              </ul>
+          {/* Right Column / Instructions */}
+          <div className="col-lg-4">
+            <div className="card shadow-lg border-0 mb-4" style={{ backgroundColor: '#c9d5e9' }}>
+              <div className="card-body">
+                <h5 className="fw-bold text-primary">Instructions</h5>
+                <ul className="list-unstyled mt-3">
+                  <li className="mb-2">
+                    <span className="badge rounded-pill bg-primary me-2">•</span>
+                    Update task dependencies here.
+                  </li>
+                  <li className="mb-2">
+                    <span className="badge rounded-pill bg-primary me-2">•</span>
+                    Assign users to tasks assigned to you.
+                  </li>
+                  <li className="mb-2">
+                    <span className="badge rounded-pill bg-primary me-2">•</span>
+                    Other fields (title, description, priority, dates) are read-only.
+                  </li>
+                </ul>
+              </div>
             </div>
+
+            {/* Quick Stats / Tips Card */}
+            <div className="card shadow-lg border-0" style={{ backgroundColor: '#c9d5e9' }}>
+              <div className="card-body">
+                <h6 className="fw-bold text-primary">Quick Tips</h6>
+                <div className="d-flex flex-column gap-2 mt-2">
+                  <div className="alert alert-warning p-2 mb-0">
+                    High priority tasks appear in <span className="badge bg-danger">Red</span>.
+                  </div>
+                  <div className="alert alert-info p-2 mb-0">
+                    Medium priority tasks appear in <span className="badge bg-warning text-dark">Yellow</span>.
+                  </div>
+                  <div className="alert alert-secondary p-2 mb-0">
+                    Low priority tasks appear in <span className="badge bg-secondary">Gray</span>.
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
-      )}
+      </div>
+
+      
     </div>
   );
 };

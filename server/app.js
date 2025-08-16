@@ -8,8 +8,9 @@ const cors = require('cors');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const cookieParser = require('cookie-parser');
-const hpp = require('hpp')
-const ratelimit=require('express-rate-limit');
+const hpp = require('hpp');
+const ratelimit = require('express-rate-limit');
+
 const auth = require('./src/routes/auth');
 const router = require('./src/routes/api');
 const userRoutes = require('./src/routes/userRoutes');
@@ -17,21 +18,34 @@ const adminRoutes = require('./src/routes/adminRoutes');
 const managerRoutes = require('./src/routes/managerRoutes');
 const seedRoles = require('./src/utility/seedRoles');
 
+// ------------------- CORS -------------------
+const allowedOrigins = [
+  'http://localhost:5173',         // local dev
+  'https://taskly24.netlify.app'  // production frontend
+];
+
 app.use(cors({
-  origin: 'http://localhost:5173', // React dev server
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true); // allow non-browser requests
+    if (allowedOrigins.indexOf(origin) === -1) {
+      return callback(new Error('Not allowed by CORS'), false);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
+
+// ------------------- Security & Middleware -------------------
 app.use(helmet());
 app.use(express.json({ limit: "5mb" }));
 app.use(cookieParser());
-app.use(mongoSanitize())
-app.use(hpp())
+app.use(mongoSanitize());
+app.use(hpp());
 
-// database config
+// ------------------- Database config -------------------
 const { DB_USERNAME, DB_PASSWORD } = process.env;
 
 let url = `mongodb+srv://${DB_USERNAME}:${DB_PASSWORD}@cluster0.zvfpf6i.mongodb.net/Demo?retryWrites=true&w=majority&appName=Cluster0`;
-
 
 (async () => {
   try {
@@ -43,25 +57,19 @@ let url = `mongodb+srv://${DB_USERNAME}:${DB_PASSWORD}@cluster0.zvfpf6i.mongodb.
   }
 })();
 
-
-
-// rate limit
-
+// ------------------- Rate limit -------------------
 let limiter = ratelimit({
-    windowMs: 15 * 60 * 1000,
-    max:300,
-})
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+});
 
-app.use(limiter)
+app.use(limiter);
 
-// version api tag
-
-
-app.use("/api/v1",auth);
-app.use("/api/v1",managerRoutes);
-app.use("/api/v1",router);
-app.use("/api/v1",userRoutes);
-
-app.use("/api/v1",adminRoutes);
+// ------------------- Routes -------------------
+app.use("/api/v1", auth);
+app.use("/api/v1", managerRoutes);
+app.use("/api/v1", router);
+app.use("/api/v1", userRoutes);
+app.use("/api/v1", adminRoutes);
 
 module.exports = app;
